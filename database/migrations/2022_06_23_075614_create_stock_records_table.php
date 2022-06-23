@@ -18,6 +18,7 @@ return new class extends Migration {
     {
         Schema::create(config("laravel-stock-manager.table.prefix") . 'stock_records', function (Blueprint $table) {
             $table->id();
+            $table->unsignedBigInteger("current_stock_id");
 
             //the entity/model for which the record is being generated
             $table->morphs("owner");
