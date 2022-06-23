@@ -22,23 +22,37 @@ class StockRecord extends Model
     protected static function boot()
     {
         parent::boot();
+
+        static::creating(function (self $stockRecord) {
+            if (!$stockRecord->current_stock) {
+                $currentStock = new CurrentStock();
+                $currentStock->owner_type = $stockRecord->owner_type;
+                $currentStock->owner_id = $stockRecord->owner_id;
+                $currentStock->quantity = 0;
+                $currentStock->saveOrFail();
+                $stockRecord->current_stock_id = $currentStock->id;
+            }
+        });
+
         static::created(function (self $stockRecord) {
             if ($stockRecord->type === Types::Stock_In) {
-                $stockRecord->currentStock()->firstOrNew()
-                    ->forceFill("owne")
+                $stockRecord
+                    ->current_stock
                     ->increment("quantity", $stockRecord->quantity);
             } elseif ($stockRecord->type === Types::Stock_Out) {
-                $stockRecord->currentStock()->firstOrNew()->decrement("quantity", $stockRecord->quantity);
+                $stockRecord
+                    ->current_stock
+                    ->decrement("quantity", $stockRecord->quantity);
             }
         });
 
         static::updated(function (self $stockRecord) {
             $adjust = $stockRecord->getAttribute("quantity") - $stockRecord->quantity;
-            $stockRecord->currentStock()->firstOrNew()->increment($adjust);
+            $stockRecord->currentStock->increment($adjust);
         });
 
         static::deleted(function (self $stockRecord) {
-            $stockRecord->currentStock()->firstOrNew()->decrement("quantity", $stockRecord->quantity);
+            $stockRecord->currentStock->decrement("quantity", $stockRecord->quantity);
         });
     }
 

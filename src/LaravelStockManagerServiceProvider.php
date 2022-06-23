@@ -15,7 +15,7 @@ class LaravelStockManagerServiceProvider extends ServiceProvider
     {
         // $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'wovosoft');
         // $this->loadViewsFrom(__DIR__.'/../resources/views', 'wovosoft');
-        // $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+        $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         // $this->loadRoutesFrom(__DIR__.'/routes.php');
 
         // Publishing is only necessary when using the CLI.
@@ -31,7 +31,7 @@ class LaravelStockManagerServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        $this->mergeConfigFrom(__DIR__.'/../config/laravel-stock-manager.php', 'laravel-stock-manager');
+        $this->mergeConfigFrom(__DIR__ . '/../config/laravel-stock-manager.php', 'laravel-stock-manager');
 
         // Register the service the package provides.
         $this->app->singleton('laravel-stock-manager', function ($app) {
@@ -58,7 +58,7 @@ class LaravelStockManagerServiceProvider extends ServiceProvider
     {
         // Publishing the configuration file.
         $this->publishes([
-            __DIR__.'/../config/laravel-stock-manager.php' => config_path('laravel-stock-manager.php'),
+            __DIR__ . '/../config/laravel-stock-manager.php' => config_path('laravel-stock-manager.php'),
         ], 'laravel-stock-manager.config');
 
         // Publishing the views.
