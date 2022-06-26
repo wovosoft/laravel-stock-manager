@@ -2,6 +2,7 @@
 
 namespace Wovosoft\LaravelStockManager\Models;
 
+use Illuminate\Contracts\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -13,59 +14,60 @@ class StockRecord extends Model
 {
     use HasFactory, HasTablePrefix;
 
+    protected static function boot()
+    {
+        parent::boot();
+        static::created(function (self $record) {
+            $stock = $record->currentStock()->firstOrNew();
+            $stock->owner_type = $record->owner_type;
+            $stock->owner_id = $record->owner_id;
+            if ($record->type === Types::Stock_In) {
+                $stock->quantity += $record->quantity;
+            } elseif ($record->type === Types::Stock_Out) {
+                $stock->quantity -= $record->quantity;
+            }
+            $stock->saveOrFail();
+        });
+
+        static::deleted(function (self $record) {
+            $stock = $record->current_stock;
+            if ($record->type === Types::Stock_In) {
+                $stock->decrement("quantity", $record->quantity);
+            } elseif ($record->type === Types::Stock_Out) {
+                $stock->increment("quantity", $record->quantity);
+            }
+        });
+    }
+
     protected $casts = [
         "type" => Types::class,
         "quantity" => "double"
     ];
 
 
-    protected static function boot()
-    {
-        parent::boot();
-
-        static::creating(function (self $stockRecord) {
-            if (!$stockRecord->current_stock) {
-                $currentStock = new CurrentStock();
-                $currentStock->owner_type = $stockRecord->owner_type;
-                $currentStock->owner_id = $stockRecord->owner_id;
-                $currentStock->quantity = 0;
-                $currentStock->saveOrFail();
-                $stockRecord->current_stock_id = $currentStock->id;
-            }
-        });
-
-        static::created(function (self $stockRecord) {
-            if ($stockRecord->type === Types::Stock_In) {
-                $stockRecord
-                    ->current_stock
-                    ->increment("quantity", $stockRecord->quantity);
-            } elseif ($stockRecord->type === Types::Stock_Out) {
-                $stockRecord
-                    ->current_stock
-                    ->decrement("quantity", $stockRecord->quantity);
-            }
-        });
-
-        static::updated(function (self $stockRecord) {
-            $adjust = $stockRecord->getAttribute("quantity") - $stockRecord->quantity;
-            $stockRecord->currentStock->increment($adjust);
-        });
-
-        static::deleted(function (self $stockRecord) {
-            $stockRecord->currentStock->decrement("quantity", $stockRecord->quantity);
-        });
-    }
-
+    /**
+     * Stock Of
+     * @return MorphTo
+     */
     public function owner(): MorphTo
     {
         return $this->morphTo("owner");
     }
 
-    /**
-     * @return BelongsTo
-     */
     public function currentStock(): BelongsTo
     {
-        return $this->belongsTo(CurrentStock::class);
+        return $this->belongsTo(CurrentStock::class, "owner_type", "owner_type")
+            ->where("owner_id", "=", $this->owner_id);
+    }
+
+    /**
+     * owner_type = Product::class
+     * @param Builder $builder
+     * @param string $owner
+     * @return Builder
+     */
+    public function scopeOf(Builder $builder, string $owner): Builder
+    {
+        return $builder->where("owner_type", "=", $owner);
     }
 }

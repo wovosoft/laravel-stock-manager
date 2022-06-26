@@ -16,7 +16,11 @@ class LaravelStockManagerServiceProvider extends ServiceProvider
         // $this->loadTranslationsFrom(__DIR__.'/../resources/lang', 'wovosoft');
         // $this->loadViewsFrom(__DIR__.'/../resources/views', 'wovosoft');
         $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
-        // $this->loadRoutesFrom(__DIR__.'/routes.php');
+
+        if (config("laravel-stock-manager.routes.enabled")) {
+            $this->loadRoutesFrom(__DIR__ . '/routes/web.php');
+        }
+
 
         // Publishing is only necessary when using the CLI.
         if ($this->app->runningInConsole()) {
